@@ -12,6 +12,7 @@ from app.models.submission import Submission
 from app.schemas.job import JobStatus
 from app.embeddings.engine import embed_submissions
 from app.clustering.cluster import compute_clusters, detect_bridge_essays, ClusterResult
+from app.pipeline.graph import run_evaluation_graph, load_anchor_scores, persist_results
 
 logger = get_logger(__name__)
 
@@ -81,10 +82,78 @@ def process_batch_task(self, job_id: str) -> dict:
             job.updated_at = datetime.now(timezone.utc)
             db.commit()
             
+            # Step I - Update status to EVALUATING
+            job.status = JobStatus.EVALUATING.value
+            db.commit()
+
+            # Step J - Prepare graph inputs
+            submissions = db.execute(select(Submission).filter(Submission.job_id == job_id)).scalars().all()
+            submissions_list = [
+                {
+                    "id": s.id, 
+                    "content": s.content, 
+                    "cluster_id": s.cluster_id,
+                    "is_bridge": s.is_bridge, 
+                    "is_anchor": s.is_anchor
+                }
+                for s in submissions
+            ]
+            
+            # Step K - Load anchor scores
+            async def run_load_anchor_scores():
+                return await load_anchor_scores(
+                    anchor_set_id=job.anchor_set_id,
+                    content_type=job.content_type,
+                    rubric=job.rubric
+                )
+            
+            anchor_scores = asyncio.run(run_load_anchor_scores())
+
+            # Step L - Run LangGraph evaluation graph
+            async def run_langgraph():
+                return await run_evaluation_graph(
+                    job_id=str(job.id),
+                    content_type=job.content_type,
+                    rubric=job.rubric,
+                    anchor_set_id=job.anchor_set_id,
+                    submissions=submissions_list,
+                    anchor_scores=anchor_scores
+                )
+
+            try:
+                final_state = asyncio.run(run_langgraph())
+            except Exception as e:
+                job.status = JobStatus.FAILED.value
+                job.error_message = str(e)
+                db.commit()
+                raise e
+
+            # Step M - Update status DB
+            job.status = JobStatus.NORMALISING.value
+            db.commit()
+            job.status = JobStatus.GENERATING_FEEDBACK.value
+            db.commit()
+
+            # Step N - Persist results
+            async def run_persist():
+                async with async_sessionmaker_db() as async_db:
+                    await persist_results(final_state=final_state, db=async_db)
+
+            asyncio.run(run_persist())
+            
+            job.completed_count = len(final_state["scores"])
+
+            # Step O - Mark COMPLETED
+            job.status = JobStatus.COMPLETED.value
+            job.updated_at = datetime.now(timezone.utc)
+            db.commit()
+
+            logger.info(f"Job {job_id} completed. {len(final_state['scores'])} results written.")
+            
             return {
-                "status": "clustering_complete",
+                "status": "completed",
                 "job_id": job_id,
-                "cluster_count": k
+                "result_count": len(final_state["scores"])
             }
             
     except (ConnectionError, TimeoutError) as e:
