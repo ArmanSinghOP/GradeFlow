@@ -16,9 +16,23 @@ from app.pipeline.graph import run_evaluation_graph, load_anchor_scores, persist
 
 logger = get_logger(__name__)
 
+def get_or_create_loop():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
 @celery_app.task(bind=True, name="process_batch")
 def process_batch_task(self, job_id: str) -> dict:
     logger.info(f"Starting process_batch_task for job {job_id}")
+    
+    worker_loop = get_or_create_loop()
     
     try:
         with get_sync_db() as db:
@@ -43,7 +57,7 @@ def process_batch_task(self, job_id: str) -> dict:
                 async with async_sessionmaker_db() as async_db:
                     await embed_submissions(submissions, async_db)
             
-            asyncio.run(run_embedding())
+            worker_loop.run_until_complete(run_embedding())
             logger.info(f"Embedding complete for job {job_id}")
             
             job.status = JobStatus.CLUSTERING.value
@@ -99,19 +113,15 @@ def process_batch_task(self, job_id: str) -> dict:
                 for s in submissions
             ]
             
-            # Step K - Load anchor scores
-            async def run_load_anchor_scores():
-                return await load_anchor_scores(
+            # Step K through N - Eval pipeline
+            async def run_eval_pipeline():
+                anchor_scores = await load_anchor_scores(
                     anchor_set_id=job.anchor_set_id,
                     content_type=job.content_type,
                     rubric=job.rubric
                 )
-            
-            anchor_scores = asyncio.run(run_load_anchor_scores())
 
-            # Step L - Run LangGraph evaluation graph
-            async def run_langgraph():
-                return await run_evaluation_graph(
+                final_st = await run_evaluation_graph(
                     job_id=str(job.id),
                     content_type=job.content_type,
                     rubric=job.rubric,
@@ -120,26 +130,25 @@ def process_batch_task(self, job_id: str) -> dict:
                     anchor_scores=anchor_scores
                 )
 
+                # Step M - Update status DB
+                job.status = JobStatus.NORMALISING.value
+                db.commit()
+                job.status = JobStatus.GENERATING_FEEDBACK.value
+                db.commit()
+
+                # Step N - Persist results
+                async with async_sessionmaker_db() as async_db:
+                    await persist_results(final_state=final_st, db=async_db)
+                    
+                return final_st
+
             try:
-                final_state = asyncio.run(run_langgraph())
+                final_state = worker_loop.run_until_complete(run_eval_pipeline())
             except Exception as e:
                 job.status = JobStatus.FAILED.value
                 job.error_message = str(e)
                 db.commit()
                 raise e
-
-            # Step M - Update status DB
-            job.status = JobStatus.NORMALISING.value
-            db.commit()
-            job.status = JobStatus.GENERATING_FEEDBACK.value
-            db.commit()
-
-            # Step N - Persist results
-            async def run_persist():
-                async with async_sessionmaker_db() as async_db:
-                    await persist_results(final_state=final_state, db=async_db)
-
-            asyncio.run(run_persist())
             
             job.completed_count = len(final_state["scores"])
 

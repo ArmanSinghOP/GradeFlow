@@ -1,0 +1,32 @@
+{
+  "content_type": "essay",
+  "submissions": [
+    {
+      "id": "test-e2e-noanchor-001",
+      "content_type": "essay",
+      "content": "Climate change is bad. We should stop it. People need to care more about the environment.",
+      "metadata": {}
+    },
+    {
+      "id": "test-e2e-noanchor-002",
+      "content_type": "essay",
+      "content": "The IPCC reports confirm that human emissions are the primary driver of global warming. Nations must commit to binding carbon reduction targets and invest in clean energy infrastructure to avoid catastrophic warming scenarios.",
+      "metadata": {}
+    },
+    {
+      "id": "test-e2e-noanchor-003",
+      "content_type": "essay",
+      "content": "Climate policy must balance urgency with economic feasibility. Carbon pricing mechanisms, when combined with targeted subsidies for clean technology, can drive systemic change while minimising disruption to vulnerable communities.",
+      "metadata": {}
+    }
+  ],
+  "rubric": {
+    "name": "Essay Quality Rubric",
+    "description": "Evaluates argument quality, evidence, and clarity",
+    "criteria": [
+      {"name": "Argument", "description": "Strength of central argument", "weight": 0.5, "max_score": 10.0},
+      {"name": "Evidence", "description": "Quality of supporting evidence", "weight": 0.3, "max_score": 10.0},
+      {"name": "Clarity",  "description": "Clarity and structure of writing", "weight": 0.2, "max_score": 10.0}
+    ]
+  }
+}

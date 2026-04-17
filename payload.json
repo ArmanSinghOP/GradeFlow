@@ -1,0 +1,94 @@
+{
+  "anchor_set_id": "essay-anchor-v1",
+  "content_type": "essay",
+  "description": "Reference anchor set for essay evaluation calibration",
+  "version": 1,
+  "rubric_name": "Essay Quality Rubric",
+  "rubric_criteria": [
+    {"name": "Argument", "weight": 0.5, "max_score": 10.0},
+    {"name": "Evidence", "weight": 0.3, "max_score": 10.0},
+    {"name": "Clarity",  "weight": 0.2, "max_score": 10.0}
+  ],
+  "anchors": [
+    {
+      "id": "anchor-001",
+      "difficulty": "weak",
+      "content": "Climate change is bad. We should stop it. People need to care more about the environment. The government should do something.",
+      "human_scores": {"Argument": 2.0, "Evidence": 1.0, "Clarity": 3.0},
+      "final_score": 1.9,
+      "notes": "Very weak — no structure, no evidence"
+    },
+    {
+      "id": "anchor-002",
+      "difficulty": "weak",
+      "content": "Pollution is causing problems for the planet. Cars and factories make it worse. People should recycle more and use less plastic.",
+      "human_scores": {"Argument": 2.5, "Evidence": 1.5, "Clarity": 3.5},
+      "final_score": 2.4,
+      "notes": "Weak — vague claims, minimal structure"
+    },
+    {
+      "id": "anchor-003",
+      "difficulty": "developing",
+      "content": "Climate change is a serious issue caused by greenhouse gas emissions. Governments should invest in renewable energy to reduce carbon output. However, economic factors also need to be considered when implementing new policies.",
+      "human_scores": {"Argument": 5.0, "Evidence": 4.0, "Clarity": 5.0},
+      "final_score": 4.7,
+      "notes": "Developing — some structure, limited evidence"
+    },
+    {
+      "id": "anchor-004",
+      "difficulty": "developing",
+      "content": "Rising sea levels and extreme weather are direct consequences of climate change. Countries must work together to set emission targets. Individual action also matters but systemic change is more impactful.",
+      "human_scores": {"Argument": 5.5, "Evidence": 4.5, "Clarity": 5.5},
+      "final_score": 5.2,
+      "notes": "Developing — reasonable argument, sparse evidence"
+    },
+    {
+      "id": "anchor-005",
+      "difficulty": "proficient",
+      "content": "Anthropogenic climate change, driven by CO2 and methane emissions, poses existential risks. The Paris Agreement established a framework for limiting warming to 1.5 degrees Celsius. Nations must transition to clean energy while supporting affected communities through just transition policies.",
+      "human_scores": {"Argument": 7.0, "Evidence": 6.5, "Clarity": 7.0},
+      "final_score": 6.85,
+      "notes": "Proficient — clear argument, references real policy"
+    },
+    {
+      "id": "anchor-006",
+      "difficulty": "proficient",
+      "content": "The IPCC Sixth Assessment Report confirms that human activities are unequivocally responsible for global warming. Mitigation strategies must combine renewable energy deployment, carbon capture, and demand-side interventions. Policy coherence across sectors is essential for meaningful progress.",
+      "human_scores": {"Argument": 7.5, "Evidence": 7.0, "Clarity": 7.5},
+      "final_score": 7.35,
+      "notes": "Proficient — cites authoritative source, structured"
+    },
+    {
+      "id": "anchor-007",
+      "difficulty": "strong",
+      "content": "Climate policy must navigate the tension between urgency and feasibility. While rapid decarbonisation is scientifically necessary, political economy constraints shape what is achievable. Carbon pricing, when paired with revenue recycling to low-income households, addresses both efficiency and equity concerns simultaneously.",
+      "human_scores": {"Argument": 8.5, "Evidence": 8.0, "Clarity": 8.5},
+      "final_score": 8.35,
+      "notes": "Strong — nuanced argument, policy-aware"
+    },
+    {
+      "id": "anchor-008",
+      "difficulty": "strong",
+      "content": "The climate crisis demands a systems-level response integrating energy transition, land use reform, and financial system realignment. The Inflation Reduction Act demonstrates that industrial policy can accelerate decarbonisation while creating economic opportunity. However, global south nations require technology transfer and climate finance to participate meaningfully.",
+      "human_scores": {"Argument": 9.0, "Evidence": 8.5, "Clarity": 8.5},
+      "final_score": 8.75,
+      "notes": "Strong — references real legislation, global perspective"
+    },
+    {
+      "id": "anchor-009",
+      "difficulty": "exemplary",
+      "content": "Limiting warming to 1.5 degrees Celsius requires a 45% reduction in global emissions by 2030 relative to 2010 levels, according to IPCC SR1.5. Achieving this demands simultaneous action across power, transport, industry, and land use sectors. Successful precedents — Denmark's wind transition, Costa Rica's reforestation — demonstrate that political will, not technological constraint, is the binding variable.",
+      "human_scores": {"Argument": 9.5, "Evidence": 9.5, "Clarity": 9.0},
+      "final_score": 9.4,
+      "notes": "Exemplary — precise data, comparative analysis, strong conclusion"
+    },
+    {
+      "id": "anchor-010",
+      "difficulty": "exemplary",
+      "content": "The political economy of climate inaction reflects a fundamental collective action problem: the costs of mitigation are immediate and concentrated while the benefits are diffuse and long-term. Overcoming this requires institutional design that aligns incentives — carbon pricing with border adjustments, green industrial policy, and binding international commitments with enforcement mechanisms. The evidence from jurisdictions that have implemented comprehensive climate policy shows that economic growth and decarbonisation are not inherently in conflict.",
+      "human_scores": {"Argument": 10.0, "Evidence": 9.5, "Clarity": 9.5},
+      "final_score": 9.75,
+      "notes": "Exemplary — exceptional argument depth, evidence quality, and clarity"
+    }
+  ]
+}

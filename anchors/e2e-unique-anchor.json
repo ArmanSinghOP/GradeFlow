@@ -1,0 +1,167 @@
+{
+  "anchor_set_id": "e2e-unique-anchor",
+  "content_type": "essay",
+  "description": "API E2E Set",
+  "version": 1,
+  "anchors": [
+    {
+      "id": "e2e_0",
+      "content": "content 0",
+      "human_scores": {
+        "Criteria 1": 10.0
+      },
+      "final_score": 10.0,
+      "difficulty": "exemplary",
+      "notes": ""
+    },
+    {
+      "id": "e2e_1",
+      "content": "content 1",
+      "human_scores": {
+        "Criteria 1": 10.0
+      },
+      "final_score": 10.0,
+      "difficulty": "exemplary",
+      "notes": ""
+    },
+    {
+      "id": "e2e_2",
+      "content": "content 2",
+      "human_scores": {
+        "Criteria 1": 10.0
+      },
+      "final_score": 10.0,
+      "difficulty": "exemplary",
+      "notes": ""
+    },
+    {
+      "id": "e2e_3",
+      "content": "content 3",
+      "human_scores": {
+        "Criteria 1": 10.0
+      },
+      "final_score": 10.0,
+      "difficulty": "exemplary",
+      "notes": ""
+    },
+    {
+      "id": "e2e_4",
+      "content": "content 4",
+      "human_scores": {
+        "Criteria 1": 10.0
+      },
+      "final_score": 10.0,
+      "difficulty": "exemplary",
+      "notes": ""
+    },
+    {
+      "id": "e2e_w_0",
+      "content": "weak 0",
+      "human_scores": {
+        "Criteria 1": 2.0
+      },
+      "final_score": 2.0,
+      "difficulty": "weak",
+      "notes": ""
+    },
+    {
+      "id": "e2e_w_1",
+      "content": "weak 1",
+      "human_scores": {
+        "Criteria 1": 2.0
+      },
+      "final_score": 2.0,
+      "difficulty": "weak",
+      "notes": ""
+    },
+    {
+      "id": "e2e_w_2",
+      "content": "weak 2",
+      "human_scores": {
+        "Criteria 1": 2.0
+      },
+      "final_score": 2.0,
+      "difficulty": "weak",
+      "notes": ""
+    },
+    {
+      "id": "e2e_w_3",
+      "content": "weak 3",
+      "human_scores": {
+        "Criteria 1": 2.0
+      },
+      "final_score": 2.0,
+      "difficulty": "weak",
+      "notes": ""
+    },
+    {
+      "id": "e2e_w_4",
+      "content": "weak 4",
+      "human_scores": {
+        "Criteria 1": 2.0
+      },
+      "final_score": 2.0,
+      "difficulty": "weak",
+      "notes": ""
+    },
+    {
+      "id": "e2e_m_0",
+      "content": "mid 0",
+      "human_scores": {
+        "Criteria 1": 5.0
+      },
+      "final_score": 5.0,
+      "difficulty": "proficient",
+      "notes": ""
+    },
+    {
+      "id": "e2e_m_1",
+      "content": "mid 1",
+      "human_scores": {
+        "Criteria 1": 5.0
+      },
+      "final_score": 5.0,
+      "difficulty": "proficient",
+      "notes": ""
+    },
+    {
+      "id": "e2e_m_2",
+      "content": "mid 2",
+      "human_scores": {
+        "Criteria 1": 5.0
+      },
+      "final_score": 5.0,
+      "difficulty": "proficient",
+      "notes": ""
+    },
+    {
+      "id": "e2e_m_3",
+      "content": "mid 3",
+      "human_scores": {
+        "Criteria 1": 5.0
+      },
+      "final_score": 5.0,
+      "difficulty": "proficient",
+      "notes": ""
+    },
+    {
+      "id": "e2e_m_4",
+      "content": "mid 4",
+      "human_scores": {
+        "Criteria 1": 5.0
+      },
+      "final_score": 5.0,
+      "difficulty": "proficient",
+      "notes": ""
+    }
+  ],
+  "rubric_name": "Test Rubric",
+  "rubric_criteria": [
+    {
+      "name": "Criteria 1",
+      "weight": 1.0,
+      "max_score": 10.0
+    }
+  ],
+  "created_at": "2026-04-17T17:11:01.946253"
+}
