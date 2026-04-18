@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     ANCHOR_SET_PATH: str = "./anchors"
     LOG_LEVEL: str = "INFO"
     ENVIRONMENT: str = "development"
+    
+    langsmith_api_key: str | None = None
+    langsmith_project: str = "gradeflow"
+    langsmith_tracing_enabled: bool = False
+    
+    rate_limit_requests: int = 60
+    rate_limit_window: int = 60
 
     class Config:
         env_file = ".env"

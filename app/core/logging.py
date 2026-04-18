@@ -29,3 +29,13 @@ def get_logger(name: str) -> logging.Logger:
         logger.setLevel(settings.LOG_LEVEL)
         logger.propagate = False
     return logger
+
+def log_event(logger, level: str, event: str, **kwargs) -> None:
+    method = getattr(logger, level.lower(), logger.info)
+    payload = {
+        "event": event,
+        "timestamp": datetime.utcnow().isoformat(),
+        **kwargs
+    }
+    method(event, extra={"extra": payload})
+

@@ -4,7 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from collections import defaultdict
 from app.pipeline.state import GradeFlowState, SubmissionScoreDict
 from app.pipeline.graph import llm, parse_llm_json
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_event
 from app.prompts import get_prompts
 
 logger = get_logger(__name__)
@@ -16,6 +16,8 @@ async def cluster_compare_node(state: GradeFlowState) -> dict:
     prompts = get_prompts(state["content_type"])
     scores = state["scores"]
     rubric = state["rubric"]
+    cluster_ids = list(set(s["cluster_id"] for s in scores))
+    log_event(logger, "info", "node_start", node="cluster_compare", cluster_count=len(cluster_ids), job_id=state.get("job_id"))
     rubric_json = json.dumps(rubric, indent=2)
     
     cluster_summaries = state.get("cluster_summaries", {}).copy()
@@ -138,6 +140,7 @@ async def cluster_compare_node(state: GradeFlowState) -> dict:
     final_scores = [updated_scores_map[sub["submission_id"]] for sub in scores]
     
     logger.info(f"cluster_compare_node complete: {len(clustered_scores)} clusters, {windows_processed} windows, {errors_this_node} errors")
+    log_event(logger, "info", "node_complete", node="cluster_compare", clusters=len(clustered_scores), windows=windows_processed, errors=errors_this_node, job_id=state.get("job_id"))
     
     return {
         "scores": final_scores,

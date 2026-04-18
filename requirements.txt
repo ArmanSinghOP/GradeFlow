@@ -22,3 +22,4 @@ psycopg2-binary>=2.9.9
 scikit-learn>=1.5.0
 numpy>=1.26.0
 aiosqlite>=0.20.0
+langsmith>=0.1.0

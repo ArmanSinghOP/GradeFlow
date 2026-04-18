@@ -1,5 +1,5 @@
 from app.pipeline.state import GradeFlowState
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_event
 
 logger = get_logger(__name__)
 
@@ -7,6 +7,7 @@ async def normalise_node(state: GradeFlowState) -> dict:
     scores = state["scores"]
     anchor_scores = state.get("anchor_scores", [])
     rubric = state["rubric"]
+    log_event(logger, "info", "node_start", node="normalise", submission_count=len(scores), anchor_count=len(anchor_scores), job_id=state.get("job_id"))
     
     if not scores:
         return {"scores": scores, "current_node": "normalise"}
@@ -67,6 +68,7 @@ async def normalise_node(state: GradeFlowState) -> dict:
     min_score = min((s["normalised_score"] for s in scores), default=0.0)
     
     logger.info(f"normalise_node complete: mean={mean_score:.2f}, max={max_score:.2f}, min={min_score:.2f}, flagged={flagged_count}")
+    log_event(logger, "info", "node_complete", node="normalise", mean=round(mean_score, 2), flagged=flagged_count, job_id=state.get("job_id"))
         
     return {
         "scores": scores,

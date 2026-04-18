@@ -17,7 +17,8 @@ logger = get_logger(__name__)
 llm = ChatOpenAI(
     model=settings.LLM_MODEL,
     temperature=0.1,
-    max_tokens=1000
+    max_tokens=1000,
+    openai_api_key=settings.OPENAI_API_KEY
 )
 
 def parse_llm_json(response: str) -> dict:
@@ -83,7 +84,13 @@ async def run_evaluation_graph(
     }
 
     try:
-        final_state = await evaluation_graph.ainvoke(initial_state)
+        from app.core.tracing import get_trace_metadata
+        config = {
+            "run_name": f"gradeflow-eval-{job_id}",
+            "metadata": get_trace_metadata(job_id, content_type),
+            "tags": [content_type, f"job-{job_id[:8]}"]
+        }
+        final_state = await evaluation_graph.ainvoke(initial_state, config=config)
         return final_state
     except Exception as e:
         logger.exception("Graph invocation raised an exception")

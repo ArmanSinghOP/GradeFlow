@@ -1,5 +1,10 @@
 import pytest
 import pytest_asyncio
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "integration: requires Docker and running services"
+    )
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.main import app
@@ -27,12 +32,19 @@ TestingSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind
 from unittest.mock import patch
 
 @pytest_asyncio.fixture(autouse=True)
-def mock_celery_task():
-    with patch("app.api.v1.endpoints.evaluate.process_batch_task.delay") as mock_delay:
-        yield mock_delay
+def mock_celery_task(request):
+    if "integration" in request.node.keywords:
+        yield None
+    else:
+        with patch("app.api.v1.endpoints.evaluate.process_batch_task.delay") as mock_delay:
+            yield mock_delay
 
 @pytest_asyncio.fixture(autouse=True)
-async def setup_db():
+async def setup_db(request):
+    if "integration" in request.node.keywords:
+        yield
+        return
+        
     if os.path.exists("test.db"):
         try:
             os.remove("test.db")
@@ -54,10 +66,20 @@ async def override_get_db():
     async with TestingSessionLocal() as session:
         yield session
 
-app.dependency_overrides[get_db] = override_get_db
+@pytest.fixture(autouse=True)
+def apply_db_override(request):
+    if "integration" not in request.node.keywords:
+        app.dependency_overrides[get_db] = override_get_db
+    else:
+        if get_db in app.dependency_overrides:
+            del app.dependency_overrides[get_db]
+    yield
+    if get_db in app.dependency_overrides:
+        del app.dependency_overrides[get_db]
 
 @pytest_asyncio.fixture
 async def async_client():
+    from httpx import ASGITransport
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 

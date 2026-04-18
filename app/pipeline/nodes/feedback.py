@@ -3,7 +3,7 @@ import json
 from langchain_core.messages import SystemMessage, HumanMessage
 from app.pipeline.state import GradeFlowState, SubmissionScoreDict
 from app.pipeline.graph import llm, parse_llm_json
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_event
 from app.prompts import get_prompts
 
 logger = get_logger(__name__)
@@ -12,6 +12,7 @@ async def feedback_node(state: GradeFlowState) -> dict:
     prompts = get_prompts(state["content_type"])
     scores = state["scores"]
     rubric = state["rubric"]
+    log_event(logger, "info", "node_start", node="feedback", submission_count=len(scores), job_id=state.get("job_id"))
     rubric_json = json.dumps(rubric, indent=2)
     
     submissions_dict = {sub["id"]: sub for sub in state["submissions"]}
@@ -69,7 +70,9 @@ async def feedback_node(state: GradeFlowState) -> dict:
 
     await asyncio.gather(*(process_feedback(s) for s in scores))
     
-    logger.info(f"feedback_node complete: {len(scores)} feedback items generated, {len(errors) - len(state.get('errors', []))} errors")
+    error_count = len(errors) - len(state.get('errors', []))
+    logger.info(f"feedback_node complete: {len(scores)} feedback items generated, {error_count} errors")
+    log_event(logger, "info", "node_complete", node="feedback", generated=len(scores), errors=error_count, job_id=state.get("job_id"))
     
     return {
         "scores": scores,

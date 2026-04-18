@@ -5,7 +5,7 @@ from sqlalchemy import select, update
 from collections import Counter
 from celery.exceptions import Retry
 from app.workers.celery_app import celery_app
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_event
 from app.db.session import get_sync_db, async_sessionmaker_db
 from app.models.job import Job
 from app.models.submission import Submission
@@ -50,6 +50,7 @@ def process_batch_task(self, job_id: str) -> dict:
             
             job.status = JobStatus.EMBEDDING.value
             db.commit()
+            log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.EMBEDDING.value, submission_count=len(submissions))
             
             logger.info(f"Running embeddings for {len(submissions)} submissions")
             
@@ -62,6 +63,7 @@ def process_batch_task(self, job_id: str) -> dict:
             
             job.status = JobStatus.CLUSTERING.value
             db.commit()
+            log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.CLUSTERING.value, submission_count=len(submissions))
             
             # Step F - Cluster
             submissions_with_embeds = db.execute(
@@ -95,10 +97,12 @@ def process_batch_task(self, job_id: str) -> dict:
             job.status = JobStatus.CLUSTERING.value
             job.updated_at = datetime.now(timezone.utc)
             db.commit()
+            log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.CLUSTERING.value, submission_count=len(submissions))
             
             # Step I - Update status to EVALUATING
             job.status = JobStatus.EVALUATING.value
             db.commit()
+            log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.EVALUATING.value, submission_count=len(submissions))
 
             # Step J - Prepare graph inputs
             submissions = db.execute(select(Submission).filter(Submission.job_id == job_id)).scalars().all()
@@ -133,8 +137,10 @@ def process_batch_task(self, job_id: str) -> dict:
                 # Step M - Update status DB
                 job.status = JobStatus.NORMALISING.value
                 db.commit()
+                log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.NORMALISING.value, submission_count=len(submissions_list))
                 job.status = JobStatus.GENERATING_FEEDBACK.value
                 db.commit()
+                log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.GENERATING_FEEDBACK.value, submission_count=len(submissions_list))
 
                 # Step N - Persist results
                 async with async_sessionmaker_db() as async_db:
@@ -156,6 +162,7 @@ def process_batch_task(self, job_id: str) -> dict:
             job.status = JobStatus.COMPLETED.value
             job.updated_at = datetime.now(timezone.utc)
             db.commit()
+            log_event(logger, "info", "job_status_change", job_id=job_id, new_status=JobStatus.COMPLETED.value, submission_count=len(submissions))
 
             logger.info(f"Job {job_id} completed. {len(final_state['scores'])} results written.")
             
