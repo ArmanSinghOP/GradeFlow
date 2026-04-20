@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     
     rate_limit_requests: int = 60
     rate_limit_window: int = 60
+    
+    allowed_origins: list[str] = ["*"]
 
     class Config:
         env_file = ".env"

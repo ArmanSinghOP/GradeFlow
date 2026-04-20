@@ -23,7 +23,11 @@ async def test_sse_connected_event(async_client: AsyncClient):
     job_id = str(uuid.uuid4())
     mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.QUEUED.value, submission_count=5, completed_count=0)
     
+    poll_count = 0
     async def mock_exec(*args, **kwargs):
+        nonlocal poll_count
+        poll_count += 1
+        if poll_count > 5: raise asyncio.CancelledError()
         return MockDBResult([mock_job])
         
     with patch("sqlalchemy.ext.asyncio.AsyncSession.execute", new_callable=AsyncMock, side_effect=mock_exec):
@@ -48,9 +52,10 @@ async def test_sse_progress_event_on_status_change(async_client: AsyncClient):
     async def mock_exec(*args, **kwargs):
         nonlocal poll_count
         poll_count += 1
+        if poll_count > 5: raise asyncio.CancelledError()
         
         # Determine query type (job vs result) based on what we passed or just rely on poll_count
-        if "Result" in str(args[0]):
+        if "result" in str(args[0]).lower():
             return MockDBResult([])
             
         if poll_count <= 2: # First poll block (Job, Result) -> Job=EMBEDDING
@@ -85,9 +90,13 @@ async def test_sse_result_event_per_result(async_client: AsyncClient):
         Result(id=3, submission_id="s3", job_id=job_id, final_score=70.0)
     ]
     
+    poll_count = 0
     async def mock_exec(*args, **kwargs):
-        query_str = str(args[0])
-        if "Result" in query_str:
+        nonlocal poll_count
+        poll_count += 1
+        if poll_count > 5: raise asyncio.CancelledError()
+        query_str = str(args[0]).lower()
+        if "result" in query_str:
             return MockDBResult(mock_results)
         return MockDBResult([mock_job])
         
@@ -110,7 +119,7 @@ async def test_sse_done_event_on_completion(async_client: AsyncClient):
     mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.COMPLETED.value, submission_count=3, completed_count=3)
     
     async def mock_exec(*args, **kwargs):
-        if "Result" in str(args[0]):
+        if "result" in str(args[0]).lower():
             return MockDBResult([
                 Result(id=1, submission_id="s1", job_id=job_id, final_score=50.0),
                 Result(id=2, submission_id="s2", job_id=job_id, final_score=60.0),
@@ -133,10 +142,15 @@ async def test_sse_done_event_on_completion(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_sse_error_event_on_failure(async_client: AsyncClient):
     job_id = str(uuid.uuid4())
-    mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.FAILED.value, error_message="Embedding failed", submission_count=1)
+    mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.FAILED.value, error_message="Embedding failed", submission_count=1,
+               completed_count=0)
     
+    poll_count = 0
     async def mock_exec(*args, **kwargs):
-        if "Result" in str(args[0]): return MockDBResult([])
+        nonlocal poll_count
+        poll_count += 1
+        if poll_count > 5: raise asyncio.CancelledError()
+        if "result" in str(args[0]).lower(): return MockDBResult([])
         return MockDBResult([mock_job])
         
     with patch("sqlalchemy.ext.asyncio.AsyncSession.execute", new_callable=AsyncMock, side_effect=mock_exec):
@@ -156,7 +170,11 @@ async def test_sse_error_event_on_failure(async_client: AsyncClient):
 async def test_sse_job_not_found(async_client: AsyncClient):
     job_id = str(uuid.uuid4())
     
+    poll_count = 0
     async def mock_exec(*args, **kwargs):
+        nonlocal poll_count
+        poll_count += 1
+        if poll_count > 5: raise asyncio.CancelledError()
         return MockDBResult([])
         
     with patch("sqlalchemy.ext.asyncio.AsyncSession.execute", new_callable=AsyncMock, side_effect=mock_exec):
@@ -173,30 +191,39 @@ async def test_sse_job_not_found(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_sse_no_duplicate_results(async_client: AsyncClient):
     job_id = str(uuid.uuid4())
-    mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.COMPLETED.value, submission_count=3, completed_count=3)
+    mock_job = Job(
+        id=uuid.UUID(job_id),
+        status=JobStatus.COMPLETED.value,
+        submission_count=3,
+        completed_count=3
+    )
     mock_results = [
         Result(id=1, submission_id="s1", job_id=job_id, final_score=50.0),
         Result(id=2, submission_id="s2", job_id=job_id, final_score=60.0),
         Result(id=3, submission_id="s3", job_id=job_id, final_score=70.0)
     ]
-    
-    poll_count = 0
+
+    result_poll_count = 0  # track result queries separately
+    total_poll_count = 0
+
     async def mock_exec(*args, **kwargs):
-        nonlocal poll_count
-        poll_count += 1
-        query_str = str(args[0])
-        if "Result" in query_str:
-            # First poll: return all 3. Second poll: mock_results filter... wait, in test the generator uses select().notin_()
-            # If we just return mock_results unconditionally, the logic in python (in the endpoint) will see them if NOT IN clause isn't evaluated by mock.
-            # But wait, MockDBResult blindly returns what we give it. If it returns all 3 again on loop 2, the endpoint yields them again!
-            # Since mock doesn't implement NOT IN, we fake it here.
-            if "NOT IN" in query_str or "notin_" in query_str or "NOT" in query_str or poll_count > 2:
-                return MockDBResult([])
-            return MockDBResult(mock_results)
+        nonlocal result_poll_count, total_poll_count
+        total_poll_count += 1
+        if total_poll_count > 15:
+            raise asyncio.CancelledError()
+        query_str = str(args[0]).lower()
+        if "result" in query_str:
+            result_poll_count += 1
+            if result_poll_count == 1:
+                return MockDBResult(mock_results)
+            return MockDBResult([])
         return MockDBResult([mock_job])
-        
-    with patch("sqlalchemy.ext.asyncio.AsyncSession.execute", new_callable=AsyncMock, side_effect=mock_exec):
-        async with async_client.stream("GET", f"/api/v1/results/{job_id}/stream") as response:
+
+    with patch("sqlalchemy.ext.asyncio.AsyncSession.execute",
+               new_callable=AsyncMock, side_effect=mock_exec):
+        async with async_client.stream(
+            "GET", f"/api/v1/results/{job_id}/stream"
+        ) as response:
             events = []
             async for line in response.aiter_lines():
                 if line.startswith("data: "):
@@ -204,7 +231,7 @@ async def test_sse_no_duplicate_results(async_client: AsyncClient):
                     events.append(data)
                     if data.get("event") == "done":
                         break
-            
+
             result_events = [e for e in events if e["event"] == "result"]
             assert len(result_events) == 3
 
@@ -214,7 +241,7 @@ async def test_sse_client_disconnect_handled(async_client: AsyncClient):
     mock_job = Job(id=uuid.UUID(job_id), status=JobStatus.QUEUED.value)
     
     async def mock_exec(*args, **kwargs):
-        if "Result" in str(args[0]):
+        if "result" in str(args[0]).lower():
             raise asyncio.CancelledError() # Fake disconnect during DB call
         return MockDBResult([mock_job])
         

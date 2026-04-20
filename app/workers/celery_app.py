@@ -19,6 +19,20 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_acks_late=True,
     task_default_queue="gradeflow",
+    timezone="UTC",
+    enable_utc=True,
+    task_track_started=True,
+    task_send_sent_event=True,
+    worker_hijack_root_logger=False,
+    worker_log_format="%(message)s",
+    broker_connection_retry_on_startup=True,
+    broker_connection_max_retries=10,
+    result_expires=86400,
 )
+
+celery_app.conf.task_routes = {
+    "process_batch": {"queue": "gradeflow"},
+    "handle_failed_job": {"queue": "gradeflow"},
+}
 
 celery_app.autodiscover_tasks(["app.workers.tasks"])

@@ -1,13 +1,19 @@
-version: "3.8"
-
 services:
   api:
     build: .
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     env_file: .env
     environment:
       - PYTHONPATH=/app
@@ -20,8 +26,10 @@ services:
   worker:
     build: .
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file: .env
     environment:
       - PYTHONPATH=/app
@@ -37,6 +45,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gradeflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradeflow_secret}
       POSTGRES_DB: ${POSTGRES_DB:-gradeflow_db}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gradeflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -44,6 +57,11 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   postgres_data:

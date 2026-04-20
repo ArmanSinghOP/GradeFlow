@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 from sqlalchemy import select, update
 from collections import Counter
 from celery.exceptions import Retry
+import celery
+import openai
+from sqlalchemy.exc import OperationalError
+from redis.exceptions import ConnectionError as RedisConnectionError
 from app.workers.celery_app import celery_app
 from app.core.logging import get_logger, log_event
 from app.db.session import get_sync_db, async_sessionmaker_db
@@ -15,6 +19,35 @@ from app.clustering.cluster import compute_clusters, detect_bridge_essays, Clust
 from app.pipeline.graph import run_evaluation_graph, load_anchor_scores, persist_results
 
 logger = get_logger(__name__)
+
+TRANSIENT_ERRORS = (
+    ConnectionError,
+    TimeoutError,
+    RedisConnectionError,
+    OperationalError
+)
+
+PERMANENT_ERRORS = (
+    openai.AuthenticationError,
+    openai.PermissionDeniedError,
+    ValueError
+)
+
+@celery_app.task(name="handle_failed_job")
+def handle_failed_job(job_id: str):
+    with get_sync_db() as db:
+        job = db.execute(select(Job).filter(Job.id == job_id)).scalar_one_or_none()
+        if job and job.status != JobStatus.FAILED.value:
+            job.status = JobStatus.FAILED.value
+            job.error_message = "Task failed after maximum retries. Manual intervention required."
+            db.commit()
+            log_event(logger, "error", "job_dead_lettered", job_id=job_id)
+
+class ProcessBatchTask(celery.Task):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        job_id = args[0] if args else kwargs.get("job_id")
+        if job_id:
+            handle_failed_job.delay(job_id)
 
 def get_or_create_loop():
     try:
@@ -28,7 +61,7 @@ def get_or_create_loop():
         asyncio.set_event_loop(loop)
         return loop
 
-@celery_app.task(bind=True, name="process_batch")
+@celery_app.task(bind=True, base=ProcessBatchTask, name="process_batch")
 def process_batch_task(self, job_id: str) -> dict:
     logger.info(f"Starting process_batch_task for job {job_id}")
     
@@ -172,20 +205,11 @@ def process_batch_task(self, job_id: str) -> dict:
                 "result_count": len(final_state["scores"])
             }
             
-    except (ConnectionError, TimeoutError) as e:
-        logger.warning(f"Transient error in process_batch_task: {e}. Retrying.")
-        try:
-            with get_sync_db() as db:
-                 job = db.execute(select(Job).filter(Job.id == job_id)).scalar_one_or_none()
-                 if job:
-                     job.status = JobStatus.FAILED.value
-                     job.error_message = str(e)
-                     db.commit()
-        except Exception:
-            pass
+    except TRANSIENT_ERRORS as e:
+        log_event(logger, "warning", "transient_error", job_id=job_id, error=str(e), retry=self.request.retries)
         raise self.retry(exc=e, countdown=60, max_retries=2)
     except Exception as e:
-        logger.error(f"Error in process_batch_task: {str(e)}")
+        log_event(logger, "error", "permanent_error", job_id=job_id, error=str(e))
         try:
             with get_sync_db() as db:
                  job = db.execute(select(Job).filter(Job.id == job_id)).scalar_one_or_none()

@@ -153,16 +153,23 @@ async def load_anchor_scores(
         return []
 
 
+from app.models.job import Job
+from sqlalchemy import select
+
 async def persist_results(
     final_state: GradeFlowState,
     db: AsyncSession
 ) -> None:
     total_cohort_size = len(final_state["scores"])
-    for score in final_state["scores"]:
+    job_id_str = final_state["job_id"]
+    job = await db.scalar(select(Job).filter(Job.id == job_id_str))
+    
+    results_to_insert = []
+    for i, score in enumerate(final_state["scores"]):
         result = Result(
             id=uuid.uuid4(),
             submission_id=score["submission_id"],
-            job_id=uuid.UUID(final_state["job_id"]),
+            job_id=uuid.UUID(job_id_str),
             final_score=score["normalised_score"],
             max_possible_score=100.0,
             percentile=score["percentile"],
@@ -177,7 +184,14 @@ async def persist_results(
             cohort_comparison_summary=score["cohort_comparison_summary"],
             evaluated_at=datetime.now(timezone.utc)
         )
-        db.add(result)
+        results_to_insert.append(result)
         
-    await db.commit()
+        if len(results_to_insert) >= 10 or i == len(final_state["scores"]) - 1:
+            db.add_all(results_to_insert)
+            await db.commit()
+            if job:
+                job.completed_count += len(results_to_insert)
+                await db.commit()
+            results_to_insert = []
+            
     logger.info(f"persist_results: {total_cohort_size} results written for job {final_state['job_id']}")

@@ -133,7 +133,9 @@ curl -X POST http://localhost:8000/api/v1/anchors/123e4567-e89b-12d3.../preview 
 
 **Phase 4 — Distributed Anchor Mapping:** Constructs full CRUD calibration paths to let human evaluators dictate alignment offsets across AI models. Incorporates path validations and calibration testing schemas over a flat-file JSON structure.
 
-**Phase 5 — Full Observability & API Resilience (Current Phase):** Rounds out the product experience by enabling real-time Server-Sent Events (`results/stream`) and system durability. Introduces sliding window rate limiting and adds end-to-end integration mapping over LangSmith traces.
+**Phase 5 — Full Observability & API Resilience:** Rounds out the product experience by enabling real-time Server-Sent Events (`results/stream`) and system durability. Introduces sliding window rate limiting and adds end-to-end integration mapping over LangSmith traces.
+
+**Phase 6 — Production Readiness (Current Phase):** Implements final production infrastructure, including a Docker production build with NGINX reverse-proxy configuration and comprehensive dependency health checks. Bolsters system robustness with security headers, Request ID middleware for enhanced observability, advanced worker dead-letter recovery handling, and `pyproject.toml` standardized tooling integration.
 
 ## Running Tests
 

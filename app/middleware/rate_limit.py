@@ -8,6 +8,9 @@ request_history = {}
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/api/v1/health"):
+            return await call_next(request)
+            
         if not (request.url.path.startswith("/api/v1/evaluate") or request.url.path.startswith("/api/v1/anchors")):
             return await call_next(request)
 
