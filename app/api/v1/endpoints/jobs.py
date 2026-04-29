@@ -45,7 +45,12 @@ async def list_jobs(
     db: AsyncSession = Depends(get_db)
 ):
     """List all jobs with pagination."""
-    result = await db.execute(select(Job).limit(limit).offset(offset))
+    result = await db.execute(
+        select(Job)
+        .order_by(Job.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     jobs = result.scalars().all()
     
     responses = []

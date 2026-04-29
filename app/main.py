@@ -1,6 +1,10 @@
 from contextlib import asynccontextmanager
 import subprocess
 import uuid
+
+from app.core.tracing import setup_tracing
+setup_tracing()
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +12,6 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.v1.router import api_router
 from app.core.logging import get_logger, log_event
-from app.core.tracing import setup_tracing
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.config import settings
@@ -35,7 +38,6 @@ async def lifespan(app: FastAPI):
               tracing_enabled=settings.langsmith_tracing_enabled,
               rate_limit=f"{settings.rate_limit_requests} req/{settings.rate_limit_window}s")
               
-    setup_tracing()
     logger.info("Initializing app lifespan.")
     yield
     logger.info("Closing app lifespan.")
