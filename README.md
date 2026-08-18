@@ -44,56 +44,56 @@ GradeFlow evaluates large batches of submissions — essays, code, reports, inte
 ## How It Works
 
 ```text
-Submissions
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  1. EMBED      OpenAI text-embedding-3-small     │
-│                Batched, parallel, 1536 dims      │
-│                Stored in pgvector                │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  2. CLUSTER    KMeans — target ~25 per cluster   │
-│                Bridge essay detection            │
-│                Semantic grouping                 │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  3. SCORE      LangGraph node — individual score │
-│                Each submission vs rubric         │
-│                Concurrent, Semaphore(10)         │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  4. COMPARE    LangGraph node — cluster compare  │
-│                Sliding window within clusters    │
-│                Score adjustment + calibration    │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  5. NORMALISE  Anchor-based score shift          │
-│                Percentile + dense rank           │
-│                Grade boundary flagging           │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  6. FEEDBACK   LangGraph node — narrative        │
-│                Personalised per submission       │
-│                Cohort comparison summary         │
-└────────────────────────┬────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│  7. STREAM     Server-Sent Events                │
-│                Results as they complete          │
-│                5 event types                     │
-└─────────────────────────────────────────────────┘
+                                        Submissions
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  1. EMBED      OpenAI text-embedding-3-small    │
+                    │                Batched, parallel, 1536 dims     │
+                    │                Stored in pgvector               │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  2. CLUSTER    KMeans — target ~25 per cluster  │
+                    │                Bridge essay detection           │
+                    │                Semantic grouping                │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  3. SCORE     LangGraph node — individual score │
+                    │                Each submission vs rubric        │
+                    │                Concurrent, Semaphore(10)        │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  4. COMPARE    LangGraph node — cluster compare │
+                    │                Sliding window within clusters   │
+                    │                Score adjustment + calibration   │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  5. NORMALISE  Anchor-based score shift         │
+                    │                Percentile + dense rank          │
+                    │                Grade boundary flagging          │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  6. FEEDBACK   LangGraph node — narrative       │
+                    │                Personalised per submission      │
+                    │                Cohort comparison summary        │
+                    └────────────────────────┬────────────────────────┘
+                                             │
+                                             ▼
+                    ┌─────────────────────────────────────────────────┐
+                    │  7. STREAM     Server-Sent Events               │
+                    │                Results as they complete         │
+                    │                5 event types                    │
+                    └─────────────────────────────────────────────────┘
 ```
 
 Every batch moves through a tracked status pipeline: `QUEUED → EMBEDDING → CLUSTERING → EVALUATING → NORMALISING → GENERATING_FEEDBACK → COMPLETED`. Status is queryable at any point. The SSE stream emits `progress` events at each transition so clients get live updates without polling.
@@ -390,7 +390,7 @@ Notes:
 
 ## Frontend
 
-A React + Vite dashboard is available in the `gradeflow-frontend/` directory. It provides: real-time job monitoring via SSE, score distribution charts, percentile visualisation, anchor management with calibration preview, and CSV export. See [gradeflow-frontend/FRONTEND_README.md](../gradeflow-frontend/FRONTEND_README.md) for setup instructions.
+A React + Vite dashboard is available in the `frontend/` directory. It provides: real-time job monitoring via SSE, score distribution charts, percentile visualisation, anchor management with calibration preview, and CSV export. See [frontend/FRONTEND_README.md](../frontend/FRONTEND_README.md) for setup instructions.
 
 ---
 Built with FastAPI · LangGraph · pgvector · Celery
