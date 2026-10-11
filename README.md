@@ -229,7 +229,7 @@ curl -X POST http://localhost:8000/api/v1/anchors/{id}/preview \
 
 1. **Clone the repository:**
    ```bash
-   git clone replace_with_your_repo_url
+   git clone https://github.com/ArmanSinghOP/GradeFlow.git
    cd gradeflow
    ```
 
